@@ -281,3 +281,114 @@ function hello_elementor_get_theme_notifications(): ThemeNotifications {
 }
 
 hello_elementor_get_theme_notifications();
+// Register custom post type 'Whois Database' and taxonomy 'Types'
+add_action( 'init', 'register_whois_database_post_type' );
+function register_whois_database_post_type() {
+	$labels = array(
+		'name' => __( 'Whois Databases', 'hello-elementor' ),
+		'singular_name' => __( 'Whois Database', 'hello-elementor' ),
+		'add_new' => __( 'Add New', 'hello-elementor' ),
+		'add_new_item' => __( 'Add New Whois Database', 'hello-elementor' ),
+		'edit_item' => __( 'Edit Whois Database', 'hello-elementor' ),
+		'new_item' => __( 'New Whois Database', 'hello-elementor' ),
+		'view_item' => __( 'View Whois Database', 'hello-elementor' ),
+		'search_items' => __( 'Search Whois Databases', 'hello-elementor' ),
+		'not_found' => __( 'No Whois Databases found', 'hello-elementor' ),
+		'not_found_in_trash' => __( 'No Whois Databases found in Trash', 'hello-elementor' ),
+		'all_items' => __( 'All Whois Databases', 'hello-elementor' ),
+		'menu_name' => __( 'Whois Database', 'hello-elementor' ),
+	);
+	$args = array(
+		'labels' => $labels,
+		'public' => false,
+		'publicly_queryable' => false,
+		'exclude_from_search' => true,
+		'show_ui' => true,
+		'show_in_menu' => true,
+		'has_archive' => false,
+		'menu_icon' => 'dashicons-database',
+		'supports' => array( 'title' ),
+		'show_in_rest' => false,
+		'rewrite' => false,
+	);
+	register_post_type( 'whois_database', $args );
+
+	// Register taxonomy 'Types'
+	$taxonomy_labels = array(
+		'name' => __( 'Types', 'hello-elementor' ),
+		'singular_name' => __( 'Type', 'hello-elementor' ),
+		'search_items' => __( 'Search Types', 'hello-elementor' ),
+		'all_items' => __( 'All Types', 'hello-elementor' ),
+		'edit_item' => __( 'Edit Type', 'hello-elementor' ),
+		'update_item' => __( 'Update Type', 'hello-elementor' ),
+		'add_new_item' => __( 'Add New Type', 'hello-elementor' ),
+		'new_item_name' => __( 'New Type Name', 'hello-elementor' ),
+		'menu_name' => __( 'Types', 'hello-elementor' ),
+	);
+	register_taxonomy( 'whois_type', 'whois_database', array(
+		'hierarchical' => true,
+		'labels' => $taxonomy_labels,
+		'show_ui' => true,
+		'show_admin_column' => true,
+		'query_var' => true,
+		'rewrite' => array( 'slug' => 'whois-type' ),
+		'show_in_rest' => true,
+	) );
+}
+
+// Add file upload meta box for Whois Database post type
+add_action( 'add_meta_boxes', 'whois_database_add_file_upload_metabox' );
+function whois_database_add_file_upload_metabox() {
+	add_meta_box(
+		'whois_database_file_upload',
+		__( 'Upload File (Excel/CSV)', 'hello-elementor' ),
+		'whois_database_file_upload_metabox_callback',
+		'whois_database',
+		'normal',
+		'default'
+	);
+}
+
+function whois_database_file_upload_metabox_callback( $post ) {
+	wp_nonce_field( 'whois_database_file_upload_nonce', 'whois_database_file_upload_nonce' );
+	$file_id = get_post_meta( $post->ID, '_whois_database_file_id', true );
+	$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+	echo '<input type="file" name="whois_database_file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />';
+	if ( $file_url ) {
+		echo '<p>' . esc_html__( 'Current file:', 'hello-elementor' ) . ' <a href="' . esc_url( $file_url ) . '" target="_blank">' . basename( $file_url ) . '</a></p>';
+	}
+}
+
+// Save uploaded file
+add_action( 'save_post', 'whois_database_save_file_upload' );
+function whois_database_save_file_upload( $post_id ) {
+	if ( ! isset( $_POST['whois_database_file_upload_nonce'] ) ) return;
+	if ( ! wp_verify_nonce( $_POST['whois_database_file_upload_nonce'], 'whois_database_file_upload_nonce' ) ) return;
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+	if ( isset( $_POST['post_type'] ) && 'whois_database' === $_POST['post_type'] ) {
+		if ( ! current_user_can( 'edit_post', $post_id ) ) return;
+	} else {
+		return;
+	}
+	if ( ! empty( $_FILES['whois_database_file']['name'] ) ) {
+		$file = $_FILES['whois_database_file'];
+		$allowed_types = array( 'text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+		if ( in_array( $file['type'], $allowed_types ) ) {
+			$upload = wp_handle_upload( $file, array( 'test_form' => false ) );
+			if ( ! isset( $upload['error'] ) && isset( $upload['file'] ) ) {
+				$filetype = wp_check_filetype( basename( $upload['file'] ), null );
+				$attachment = array(
+					'post_mime_type' => $filetype['type'],
+					'post_title' => sanitize_file_name( basename( $upload['file'] ) ),
+					'post_content' => '',
+					'post_status' => 'inherit'
+				);
+				$attach_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
+				require_once( ABSPATH . 'wp-admin/includes/image.php' );
+				$attach_data = wp_generate_attachment_metadata( $attach_id, $upload['file'] );
+				wp_update_attachment_metadata( $attach_id, $attach_data );
+				update_post_meta( $post_id, '_whois_database_file_id', $attach_id );
+			}
+		}
+	}
+}
