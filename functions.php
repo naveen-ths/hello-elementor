@@ -10,6 +10,64 @@ use Elementor\WPNotificationsPackage\V110\Notifications as ThemeNotifications;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
+// Add Whois Database Files link to WooCommerce My Account page (only for logged-in users)
+add_action( 'init', function() {
+	add_rewrite_endpoint( 'whois-database-files', EP_ROOT | EP_PAGES );
+} );
+
+add_filter( 'woocommerce_account_menu_items', function( $items ) {
+	if ( ! is_user_logged_in() ) {
+		return $items;
+	}
+	$new_items = array();
+	foreach ( $items as $key => $label ) {
+		$new_items[ $key ] = $label;
+		if ( 'downloads' === $key ) {
+			$new_items['whois-database-files'] = __( 'Whois Database Files', 'hello-elementor' );
+		}
+	}
+	return $new_items;
+}, 20 );
+
+add_action( 'woocommerce_account_whois-database-files_endpoint', function() {
+	if ( ! is_user_logged_in() ) {
+		echo '<p>' . esc_html__( 'You must be logged in to view this page.', 'hello-elementor' ) . '</p>';
+		return;
+	}
+	echo '<h3>' . esc_html__( 'Whois Database Files', 'hello-elementor' ) . '</h3>';
+	$args = array(
+		'post_type'      => 'whois_database',
+		'post_status'    => 'publish',
+		'posts_per_page' => -1,
+		// 'author'         => get_current_user_id(),
+	);
+	$query = new WP_Query( $args );
+	if ( $query->have_posts() ) {
+		echo '<table style="width:100%;border-collapse:collapse;">';
+		echo '<thead><tr><th>' . esc_html__( 'Title', 'hello-elementor' ) . '</th><th>' . esc_html__( 'File', 'hello-elementor' ) . '</th></tr></thead><tbody>';
+		while ( $query->have_posts() ) {
+			$query->the_post();
+			$file_id = get_post_meta( get_the_ID(), '_whois_database_file_id', true );
+			$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+			echo '<tr>';
+			echo '<td>' . esc_html( get_the_title() ) . '</td>';
+			if ( $file_url ) {
+				echo '<td><a href="' . esc_url( $file_url ) . '" target="_blank">' . esc_html( basename( $file_url ) ) . '</a></td>';
+			} else {
+				echo '<td>' . esc_html__( 'No file uploaded', 'hello-elementor' ) . '</td>';
+			}
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+		wp_reset_postdata();
+	} else {
+		echo '<p>' . esc_html__( 'No Whois Database files found.', 'hello-elementor' ) . '</p>';
+	}
+} );
+
+add_action( 'after_switch_theme', function() {
+	flush_rewrite_rules();
+} );
 
 define( 'HELLO_ELEMENTOR_VERSION', '3.3.0' );
 
