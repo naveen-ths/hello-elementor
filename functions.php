@@ -416,7 +416,7 @@ function whois_database_save_file_upload( $post_id ) {
 // Show Whois Databases below Orders in WooCommerce My Account
 add_action( 'woocommerce_account_after_orders', 'show_whois_databases_below_orders_my_account' );
 function show_whois_databases_below_orders_my_account() {
-	if ( ! is_user_logged_in() ) {
+	if ( ! is_user_logged_in() || ! user_has_valid_whois_package() ) {
 		return;
 	}
 	$args = array(
@@ -450,10 +450,67 @@ function show_whois_databases_below_orders_my_account() {
 }
 
 
+// Check if user has purchased required Whois packages
+function user_has_valid_whois_package() {
+	if ( ! is_user_logged_in() ) {
+		return false;
+	}
+	
+	$user_id = get_current_user_id();
+	$whois_product_ids = array( 3055, 3053, 3048, 3010 ); // Yearly, Half Yearly, Quarterly, Monthly
+	
+	// Get user's orders
+	$orders = wc_get_orders( array(
+		'customer' => $user_id,
+		'status'   => array( 'wc-completed', 'wc-processing' ),
+		'limit'    => -1,
+	) );
+	
+	foreach ( $orders as $order ) {
+		foreach ( $order->get_items() as $item ) {
+			$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
+			if ( in_array( $product_id, $whois_product_ids ) ) {
+				// Check if order is not expired (assuming subscription or time-based validity)
+				$order_date = $order->get_date_created();
+				$current_date = new DateTime();
+				$order_datetime = new DateTime( $order_date->date( 'Y-m-d H:i:s' ) );
+				
+				// Calculate validity period based on product type
+				$validity_months = 0;
+				switch ( $product_id ) {
+					case 3055: // Yearly
+						$validity_months = 12;
+						break;
+					case 3053: // Half Yearly
+						$validity_months = 6;
+						break;
+					case 3048: // Quarterly
+						$validity_months = 3;
+						break;
+					case 3010: // Monthly
+						$validity_months = 1;
+						break;
+				}
+				
+				if ( $validity_months > 0 ) {
+					$expiry_date = clone $order_datetime;
+					$expiry_date->add( new DateInterval( 'P' . $validity_months . 'M' ) );
+					
+					if ( $current_date <= $expiry_date ) {
+						return true; // Valid package found
+					}
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
 // === WOOCOMMERCE MY ACCOUNT: WHOIS DATABASE FILES MENU & ENDPOINT ===
 add_filter( 'woocommerce_account_menu_items', 'add_whois_database_files_link_my_account', 11 );
 function add_whois_database_files_link_my_account( $items ) {
-	if ( ! is_user_logged_in() ) {
+	if ( ! is_user_logged_in() || ! user_has_valid_whois_package() ) {
 		return $items;
 	}
 	$new_items = array();
@@ -486,6 +543,12 @@ function whois_database_files_endpoint_content() {
 		echo '<p>' . esc_html__( 'You must be logged in to view this page.', 'hello-elementor' ) . '</p>';
 		return;
 	}
+	
+	if ( ! user_has_valid_whois_package() ) {
+		echo '<p>' . esc_html__( 'You need to purchase a valid Whois package to access database files. Please check our available packages.', 'hello-elementor' ) . '</p>';
+		return;
+	}
+	
 	$args = array(
 		'post_type' => 'whois_database',
 		'post_status' => 'any',

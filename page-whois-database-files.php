@@ -12,6 +12,12 @@ if ( ! is_user_logged_in() ) {
     return;
 }
 
+if ( ! function_exists( 'user_has_valid_whois_package' ) || ! user_has_valid_whois_package() ) {
+    echo '<p>' . esc_html__( 'You need to purchase a valid Whois package to access database files. Please check our available packages.', 'hello-elementor' ) . '</p>';
+    get_footer();
+    return;
+}
+
 echo '<div class="whois-database-files-list">';
 echo '<h1>' . esc_html__( 'Whois Database Files', 'hello-elementor' ) . '</h1>';
 
