@@ -281,6 +281,7 @@ function hello_elementor_get_theme_notifications(): ThemeNotifications {
 }
 
 hello_elementor_get_theme_notifications();
+
 // Register custom post type 'Whois Database' and taxonomy 'Types'
 add_action( 'init', 'register_whois_database_post_type' );
 function register_whois_database_post_type() {
@@ -337,6 +338,62 @@ function register_whois_database_post_type() {
 	) );
 }
 
+// Register custom post type 'Database Files' and taxonomy 'Database Files Category'
+add_action( 'init', 'register_database_files_post_type' );
+function register_database_files_post_type() {
+	$labels = array(
+		'name' => __( 'Database Files', 'hello-elementor' ),
+		'singular_name' => __( 'Database File', 'hello-elementor' ),
+		'add_new' => __( 'Add New', 'hello-elementor' ),
+		'add_new_item' => __( 'Add New Database File', 'hello-elementor' ),
+		'edit_item' => __( 'Edit Database File', 'hello-elementor' ),
+		'new_item' => __( 'New Database File', 'hello-elementor' ),
+		'view_item' => __( 'View Database File', 'hello-elementor' ),
+		'search_items' => __( 'Search Database Files', 'hello-elementor' ),
+		'not_found' => __( 'No Database Files found', 'hello-elementor' ),
+		'not_found_in_trash' => __( 'No Database Files found in Trash', 'hello-elementor' ),
+		'all_items' => __( 'All Database Files', 'hello-elementor' ),
+		'menu_name' => __( 'Database Files', 'hello-elementor' ),
+	);
+	$args = array(
+		'labels' => $labels,
+		'public' => false,
+		'publicly_queryable' => false,
+		'exclude_from_search' => true,
+		'show_ui' => true,
+		'show_in_menu' => true,
+		'has_archive' => false,
+		'menu_icon' => 'dashicons-database-view',
+		'supports' => array( 'title' ),
+		'show_in_rest' => false,
+		'rewrite' => false,
+	);
+	register_post_type( 'database_files', $args );
+
+	// Register taxonomy 'Database Files Category'
+	$taxonomy_labels = array(
+		'name' => __( 'Database Files Categories', 'hello-elementor' ),
+		'singular_name' => __( 'Database Files Category', 'hello-elementor' ),
+		'search_items' => __( 'Search Database Files Categories', 'hello-elementor' ),
+		'all_items' => __( 'All Database Files Categories', 'hello-elementor' ),
+		'edit_item' => __( 'Edit Database Files Category', 'hello-elementor' ),
+		'update_item' => __( 'Update Database Files Category', 'hello-elementor' ),
+		'add_new_item' => __( 'Add New Database Files Category', 'hello-elementor' ),
+		'new_item_name' => __( 'New Database Files Category Name', 'hello-elementor' ),
+		'menu_name' => __( 'Categories', 'hello-elementor' ),
+	);
+	register_taxonomy( 'database_files_category', 'database_files', array(
+		'hierarchical' => true,
+		'labels' => $taxonomy_labels,
+		'show_ui' => true,
+		'show_admin_column' => true,
+		'query_var' => true,
+		'supports' => array( 'title', 'editor', 'thumbnail' ),
+		'rewrite' => array( 'slug' => 'database-files-category' ),
+		'show_in_rest' => true,
+	) );
+}
+
 // Add file upload meta box for Whois Database post type
 add_action( 'add_meta_boxes', 'whois_database_add_file_upload_metabox' );
 function whois_database_add_file_upload_metabox() {
@@ -346,6 +403,28 @@ function whois_database_add_file_upload_metabox() {
 		'whois_database_file_upload_metabox_callback',
 		'whois_database',
 		'normal',
+		'default'
+	);
+}
+
+// Add file upload and state meta boxes for Database Files post type
+add_action( 'add_meta_boxes', 'database_files_add_metaboxes' );
+function database_files_add_metaboxes() {
+	add_meta_box(
+		'database_files_file_upload',
+		__( 'Upload File (Excel/CSV)', 'hello-elementor' ),
+		'database_files_file_upload_metabox_callback',
+		'database_files',
+		'normal',
+		'default'
+	);
+	
+	add_meta_box(
+		'database_files_state',
+		__( 'State', 'hello-elementor' ),
+		'database_files_state_metabox_callback',
+		'database_files',
+		'side',
 		'default'
 	);
 }
@@ -392,6 +471,56 @@ function whois_database_file_upload_metabox_callback( $post ) {
 	<?php
 }
 
+function database_files_file_upload_metabox_callback( $post ) {
+	wp_nonce_field( 'database_files_file_upload_nonce', 'database_files_file_upload_nonce' );
+	$file_id = get_post_meta( $post->ID, '_database_files_file_id', true );
+	$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+	echo '<div id="database-files-media-uploader">';
+	echo '<input type="hidden" name="database_files_file_id" id="database_files_file_id" value="' . esc_attr( $file_id ) . '" />';
+	echo '<button type="button" class="button" id="database_files_file_upload_button">' . esc_html__( 'Add Media', 'hello-elementor' ) . '</button>';
+	echo '<span id="database_files_file_display" style="margin-left:10px;">';
+	if ( $file_url ) {
+		echo esc_html( basename( $file_url ) ) . ' <a href="' . esc_url( $file_url ) . '" target="_blank">[' . esc_html__( 'Download', 'hello-elementor' ) . ']</a>';
+	}
+	echo '</span>';
+	echo '</div>';
+	?>
+	<script type="text/javascript">
+	jQuery(document).ready(function($){
+		var file_frame;
+		$('#database_files_file_upload_button').on('click', function(e){
+			e.preventDefault();
+			if (file_frame) {
+				file_frame.open();
+				return;
+			}
+			file_frame = wp.media({
+				title: '<?php echo esc_js( __( 'Select or Upload File', 'hello-elementor' ) ); ?>',
+				button: { text: '<?php echo esc_js( __( 'Use this file', 'hello-elementor' ) ); ?>' },
+				multiple: false,
+				library: { type: ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] }
+			});
+			file_frame.on('select', function(){
+				var attachment = file_frame.state().get('selection').first().toJSON();
+				$('#database_files_file_id').val(attachment.id);
+				var fileLink = '<a href="'+attachment.url+'" target="_blank">['+'<?php echo esc_js( __( 'Download', 'hello-elementor' ) ); ?>' + ']</a>';
+				$('#database_files_file_display').html(attachment.filename + ' ' + fileLink);
+			});
+			file_frame.open();
+		});
+	});
+	</script>
+	<?php
+}
+
+function database_files_state_metabox_callback( $post ) {
+	wp_nonce_field( 'database_files_state_nonce', 'database_files_state_nonce' );
+	$state = get_post_meta( $post->ID, '_database_files_state', true );
+	echo '<label for="database_files_state">' . esc_html__( 'State:', 'hello-elementor' ) . '</label>';
+	echo '<input type="text" id="database_files_state" name="database_files_state" value="' . esc_attr( $state ) . '" style="width: 100%; margin-top: 5px;" />';
+	echo '<p class="description">' . esc_html__( 'Enter the state for this database file.', 'hello-elementor' ) . '</p>';
+}
+
 // Save uploaded file
 add_action( 'save_post', 'whois_database_save_file_upload' );
 function whois_database_save_file_upload( $post_id ) {
@@ -409,6 +538,42 @@ function whois_database_save_file_upload( $post_id ) {
 			update_post_meta( $post_id, '_whois_database_file_id', $file_id );
 		} else {
 			delete_post_meta( $post_id, '_whois_database_file_id' );
+		}
+	}
+}
+
+// Save Database Files meta data
+add_action( 'save_post', 'database_files_save_meta_data' );
+function database_files_save_meta_data( $post_id ) {
+	// Save file upload
+	if ( isset( $_POST['database_files_file_upload_nonce'] ) && wp_verify_nonce( $_POST['database_files_file_upload_nonce'], 'database_files_file_upload_nonce' ) ) {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+		if ( isset( $_POST['post_type'] ) && 'database_files' === $_POST['post_type'] ) {
+			if ( ! current_user_can( 'edit_post', $post_id ) ) return;
+		} else {
+			return;
+		}
+		if ( isset( $_POST['database_files_file_id'] ) ) {
+			$file_id = intval( $_POST['database_files_file_id'] );
+			if ( $file_id ) {
+				update_post_meta( $post_id, '_database_files_file_id', $file_id );
+			} else {
+				delete_post_meta( $post_id, '_database_files_file_id' );
+			}
+		}
+	}
+	
+	// Save state field
+	if ( isset( $_POST['database_files_state_nonce'] ) && wp_verify_nonce( $_POST['database_files_state_nonce'], 'database_files_state_nonce' ) ) {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+		if ( isset( $_POST['post_type'] ) && 'database_files' === $_POST['post_type'] ) {
+			if ( ! current_user_can( 'edit_post', $post_id ) ) return;
+		} else {
+			return;
+		}
+		if ( isset( $_POST['database_files_state'] ) ) {
+			$state = sanitize_text_field( $_POST['database_files_state'] );
+			update_post_meta( $post_id, '_database_files_state', $state );
 		}
 	}
 }
@@ -437,6 +602,39 @@ function show_whois_databases_below_orders_my_account() {
 			$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
 			echo '<tr>';
 			echo '<td>' . esc_html( get_the_title() ) . '</td>';
+			if ( $file_url ) {
+				echo '<td><a href="' . esc_url( $file_url ) . '" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a></td>';
+			} else {
+				echo '<td>' . esc_html__( 'No file uploaded', 'hello-elementor' ) . '</td>';
+			}
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+		wp_reset_postdata();
+	}
+	
+	// Show Database Files below Whois Database Files
+	$database_args = array(
+		'post_type' => 'database_files',
+		'post_status' => 'any',
+		'posts_per_page' => -1,
+	);
+	$database_query = new WP_Query( $database_args );
+	if ( $database_query->have_posts() ) {
+		echo '<h2>' . esc_html__( 'Database Files', 'hello-elementor' ) . '</h2>';
+		echo '<table class="shop_table shop_table_responsive my_account_database_files"><thead><tr>';
+		echo '<th>' . esc_html__( 'Title', 'hello-elementor' ) . '</th>';
+		echo '<th>' . esc_html__( 'State', 'hello-elementor' ) . '</th>';
+		echo '<th>' . esc_html__( 'File', 'hello-elementor' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		while ( $database_query->have_posts() ) {
+			$database_query->the_post();
+			$file_id = get_post_meta( get_the_ID(), '_database_files_file_id', true );
+			$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+			$state = get_post_meta( get_the_ID(), '_database_files_state', true );
+			echo '<tr>';
+			echo '<td>' . esc_html( get_the_title() ) . '</td>';
+			echo '<td>' . esc_html( $state ? $state : __( 'N/A', 'hello-elementor' ) ) . '</td>';
 			if ( $file_url ) {
 				echo '<td><a href="' . esc_url( $file_url ) . '" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a></td>';
 			} else {
@@ -579,14 +777,111 @@ function whois_database_files_endpoint_content() {
 	} else {
 		echo '<p>' . esc_html__( 'No Whois Database files found.', 'hello-elementor' ) . '</p>';
 	}
+	
+	// Show Database Files below Whois Database Files
+	$database_args = array(
+		'post_type' => 'database_files',
+		'post_status' => 'any',
+		'posts_per_page' => -1,
+	);
+	$database_query = new WP_Query( $database_args );
+	if ( $database_query->have_posts() ) {
+		echo '<h2>' . esc_html__( 'Database Files', 'hello-elementor' ) . '</h2>';
+		echo '<table class="shop_table shop_table_responsive my_account_database_files"><thead><tr>';
+		echo '<th>' . esc_html__( 'Title', 'hello-elementor' ) . '</th>';
+		echo '<th>' . esc_html__( 'State', 'hello-elementor' ) . '</th>';
+		echo '<th>' . esc_html__( 'File', 'hello-elementor' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		while ( $database_query->have_posts() ) {
+			$database_query->the_post();
+			$file_id = get_post_meta( get_the_ID(), '_database_files_file_id', true );
+			$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+			$state = get_post_meta( get_the_ID(), '_database_files_state', true );
+			echo '<tr>';
+			echo '<td>' . esc_html( get_the_title() ) . '</td>';
+			echo '<td>' . esc_html( $state ? $state : __( 'N/A', 'hello-elementor' ) ) . '</td>';
+			if ( $file_url ) {
+				echo '<td><a href="' . esc_url( $file_url ) . '" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a></td>';
+			} else {
+				echo '<td>' . esc_html__( 'No file uploaded', 'hello-elementor' ) . '</td>';
+			}
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+		wp_reset_postdata();
+	}
 }
 
 // Enqueue WordPress media scripts for custom metabox
 add_action( 'admin_enqueue_scripts', function( $hook ) {
 	global $post;
 	if ( $hook === 'post-new.php' || $hook === 'post.php' ) {
-		if ( isset( $post ) && $post->post_type === 'whois_database' ) {
+		if ( isset( $post ) && ( $post->post_type === 'whois_database' || $post->post_type === 'database_files' ) ) {
 			wp_enqueue_media();
 		}
 	}
 } );
+
+// AJAX handler for loading database products
+add_action( 'wp_ajax_load_database_products', 'load_database_products_ajax' );
+add_action( 'wp_ajax_nopriv_load_database_products', 'load_database_products_ajax' );
+
+function load_database_products_ajax() {
+	// Verify nonce
+	if ( ! wp_verify_nonce( $_POST['nonce'], 'load_database_products_nonce' ) ) {
+		wp_die( 'Security check failed' );
+	}
+	
+	$page = isset( $_POST['page'] ) ? intval( $_POST['page'] ) : 1;
+	$posts_per_page = 10;
+	
+	// Get products with "Database package" category
+	$args = array(
+		'post_type' => 'product',
+		'post_status' => 'publish',
+		'posts_per_page' => $posts_per_page,
+		'paged' => $page,
+		'tax_query' => array(
+			array(
+				'taxonomy' => 'product_cat',
+				'field'    => 'slug',
+				'terms'    => 'database-packages',
+			),
+		),
+	);
+	
+	$products_query = new WP_Query( $args );
+	$html = '';
+	
+	if ( $products_query->have_posts() ) {
+		while ( $products_query->have_posts() ) {
+			$products_query->the_post();
+			$product = wc_get_product( get_the_ID() );
+			$product_image = get_the_post_thumbnail_url( get_the_ID(), 'medium' );
+			
+			// Use a default image if no product image exists
+			if ( ! $product_image ) {
+				$product_image = wc_placeholder_img_src( 'medium' );
+			}
+			
+			$html .= '<div class="product-card">';
+			$html .= '<img src="' . esc_url( $product_image ) . '" alt="' . esc_attr( get_the_title() ) . '" class="product-image">';
+			$html .= '<div class="product-content">';
+			$html .= '<h3 class="product-title">' . esc_html( get_the_title() ) . '</h3>';
+			$html .= '<a href="' . esc_url( get_permalink() ) . '" class="more-details-btn">' . esc_html__( 'More Details..', 'hello-elementor' ) . '</a>';
+			$html .= '</div>';
+			$html .= '</div>';
+		}
+	}
+	
+	$has_more = $products_query->max_num_pages > $page;
+	
+	wp_reset_postdata();
+	
+	wp_send_json_success( array(
+		'html' => $html,
+		'has_more' => $has_more,
+		'current_page' => $page,
+		'max_pages' => $products_query->max_num_pages
+	) );
+}
