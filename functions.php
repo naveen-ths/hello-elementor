@@ -282,6 +282,31 @@ function hello_elementor_get_theme_notifications(): ThemeNotifications {
 
 hello_elementor_get_theme_notifications();
 
+// Register custom taxonomy for product state
+add_action( 'init', 'register_product_state_taxonomy' );
+function register_product_state_taxonomy() {
+	$labels = array(
+		'name' => __( 'Product States', 'hello-elementor' ),
+		'singular_name' => __( 'Product State', 'hello-elementor' ),
+		'search_items' => __( 'Search Product States', 'hello-elementor' ),
+		'all_items' => __( 'All Product States', 'hello-elementor' ),
+		'edit_item' => __( 'Edit Product State', 'hello-elementor' ),
+		'update_item' => __( 'Update Product State', 'hello-elementor' ),
+		'add_new_item' => __( 'Add New Product State', 'hello-elementor' ),
+		'new_item_name' => __( 'New Product State Name', 'hello-elementor' ),
+		'menu_name' => __( 'Product States', 'hello-elementor' ),
+	);
+	register_taxonomy( 'product_state', 'product', array(
+		'hierarchical' => true,
+		'labels' => $labels,
+		'show_ui' => true,
+		'show_admin_column' => true,
+		'query_var' => true,
+		'rewrite' => array( 'slug' => 'product-state' ),
+		'show_in_rest' => true,
+	) );
+}
+
 // Register custom post type 'Whois Database' and taxonomy 'Types'
 add_action( 'init', 'register_whois_database_post_type' );
 function register_whois_database_post_type() {
@@ -898,18 +923,43 @@ function get_database_autocomplete_ajax() {
 	$query = sanitize_text_field( $_POST['query'] );
 	
 	$args = array(
-		'post_type' => 'database_files',
+		'post_type' => 'product',
 		'post_status' => 'publish',
 		'posts_per_page' => 10,
-		's' => $query,
+		'tax_query' => array(
+			array(
+				'taxonomy' => 'product_cat',
+				'field'    => 'slug',
+				'terms'    => 'database-packages',
+			),
+		),
 	);
 	
-	$database_query = new WP_Query( $args );
+	// Search only in title for database-packages products
+	if ( ! empty( $query ) ) {
+		global $wpdb;
+		$search_query = $wpdb->prepare(
+			"SELECT ID FROM {$wpdb->posts} 
+			WHERE post_type = 'product' 
+			AND post_status = 'publish' 
+			AND post_title LIKE %s",
+			'%' . $wpdb->esc_like( $query ) . '%'
+		);
+		$post_ids = $wpdb->get_col( $search_query );
+		
+		if ( ! empty( $post_ids ) ) {
+			$args['post__in'] = $post_ids;
+		} else {
+			$args['post__in'] = array( 0 ); // No results
+		}
+	}
+	
+	$products_query = new WP_Query( $args );
 	$results = array();
 	
-	if ( $database_query->have_posts() ) {
-		while ( $database_query->have_posts() ) {
-			$database_query->the_post();
+	if ( $products_query->have_posts() ) {
+		while ( $products_query->have_posts() ) {
+			$products_query->the_post();
 			$results[] = array(
 				'id' => get_the_ID(),
 				'title' => get_the_title(),
@@ -933,59 +983,92 @@ function search_database_files_ajax() {
 	$query = sanitize_text_field( $_POST['query'] );
 	
 	$args = array(
-		'post_type' => 'database_files',
+		'post_type' => 'product',
 		'post_status' => 'publish',
 		'posts_per_page' => -1,
+		'tax_query' => array(
+			array(
+				'taxonomy' => 'product_cat',
+				'field'    => 'slug',
+				'terms'    => 'database-packages',
+			),
+		),
 	);
 	
+	// Search only in title for database-packages products
 	if ( ! empty( $query ) ) {
-		$args['s'] = $query;
+		global $wpdb;
+		$search_query = $wpdb->prepare(
+			"SELECT ID FROM {$wpdb->posts} 
+			WHERE post_type = 'product' 
+			AND post_status = 'publish' 
+			AND post_title LIKE %s",
+			'%' . $wpdb->esc_like( $query ) . '%'
+		);
+		$post_ids = $wpdb->get_col( $search_query );
+		
+		if ( ! empty( $post_ids ) ) {
+			$args['post__in'] = $post_ids;
+		} else {
+			$args['post__in'] = array( 0 ); // No results
+		}
 	}
 	
-	$database_query = new WP_Query( $args );
+	$products_query = new WP_Query( $args );
 	$html = '';
 	
-	if ( $database_query->have_posts() ) {
-		while ( $database_query->have_posts() ) {
-			$database_query->the_post();
-			$file_id = get_post_meta( get_the_ID(), '_database_files_file_id', true );
-			$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
-			$state = get_post_meta( get_the_ID(), '_database_files_state', true );
+	if ( $products_query->have_posts() ) {
+		while ( $products_query->have_posts() ) {
+			$products_query->the_post();
+			$product = wc_get_product( get_the_ID() );
 			
-			// Get category
-			$categories = get_the_terms( get_the_ID(), 'database_files_category' );
+			// Get product categories (excluding database-packages)
+			$categories = get_the_terms( get_the_ID(), 'product_cat' );
 			$category_name = '';
 			if ( $categories && ! is_wp_error( $categories ) ) {
-				$category_name = $categories[0]->name;
+				foreach ( $categories as $category ) {
+					if ( $category->slug !== 'database-packages' ) {
+						$category_name = $category->name;
+						break;
+					}
+				}
+				// If no other category found, use the first one
+				if ( empty( $category_name ) && ! empty( $categories ) ) {
+					$category_name = $categories[0]->name;
+				}
+			}
+			
+			// Get product state
+			$states = get_the_terms( get_the_ID(), 'product_state' );
+			$state_name = 'All India'; // Default
+			if ( $states && ! is_wp_error( $states ) ) {
+				$state_name = $states[0]->name;
 			}
 			
 			$html .= '<tr>';
 			$html .= '<td>' . esc_html( get_the_title() ) . '</td>';
-			$html .= '<td>' . esc_html( $category_name ? $category_name : 'N/A' ) . '</td>';
-			$html .= '<td>' . esc_html( $state ? $state : 'All India' ) . '</td>';
+			$html .= '<td>' . esc_html( $category_name ? $category_name : 'Database Package' ) . '</td>';
+			$html .= '<td>' . esc_html( $state_name ) . '</td>';
 			$html .= '<td>';
 			
-			if ( $file_url ) {
-				if ( is_user_logged_in() ) {
-					$html .= '<a href="' . esc_url( $file_url ) . '" class="download-btn" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a>';
-				} else {
-					$html .= '<button class="download-btn" onclick="alert(\'You need to login first to download files.\')">' . esc_html__( 'Download', 'hello-elementor' ) . '</button>';
-				}
+			// Use product permalink as download link for products
+			if ( is_user_logged_in() ) {
+				$html .= '<a href="' . esc_url( get_permalink() ) . '" class="download-btn" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a>';
 			} else {
-				$html .= '<span style="color: #999;">' . esc_html__( 'No file', 'hello-elementor' ) . '</span>';
+				$html .= '<button class="download-btn" onclick="alert(\'You need to login first to download files.\')">' . esc_html__( 'Download', 'hello-elementor' ) . '</button>';
 			}
 			
 			$html .= '</td>';
 			$html .= '</tr>';
 		}
 	} else {
-		$html .= '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">' . esc_html__( 'No database files found.', 'hello-elementor' ) . '</td></tr>';
+		$html .= '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">' . esc_html__( 'No database packages found.', 'hello-elementor' ) . '</td></tr>';
 	}
 	
 	wp_reset_postdata();
 	
 	wp_send_json_success( array(
 		'html' => $html,
-		'count' => $database_query->found_posts
+		'count' => $products_query->found_posts
 	) );
 }
