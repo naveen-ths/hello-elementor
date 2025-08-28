@@ -13,7 +13,7 @@ if ( ! is_user_logged_in() ) {
 }
 
 if ( ! function_exists( 'user_has_valid_whois_package' ) || ! user_has_valid_whois_package() ) {
-    echo '<p>' . esc_html__( 'You need to purchase a valid Whois package to access database files. Please check our available packages.', 'hello-elementor' ) . '</p>';
+    echo '<p>' . esc_html__( 'You need to purchase a valid Whois package to access database files.', 'hello-elementor' ) . ' <a href="/whois-database/">' . esc_html__( 'Check our available packages', 'hello-elementor' ) . '</a></p>';
     get_footer();
     return;
 }

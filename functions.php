@@ -545,7 +545,7 @@ function whois_database_files_endpoint_content() {
 	}
 	
 	if ( ! user_has_valid_whois_package() ) {
-		echo '<p>' . esc_html__( 'You need to purchase a valid Whois package to access database files. Please check our available packages.', 'hello-elementor' ) . '</p>';
+		echo '<p>' . esc_html__( 'You need to purchase a valid Whois package to access database files.', 'hello-elementor' ) . ' <a href="/whois-database/">' . esc_html__( 'Check our available packages', 'hello-elementor' ) . '</a></p>';
 		return;
 	}
 	
