@@ -307,6 +307,174 @@ function register_product_state_taxonomy() {
 	) );
 }
 
+// Add sample file upload meta box to products
+add_action( 'add_meta_boxes', 'add_product_sample_file_meta_box' );
+
+function add_product_sample_file_meta_box() {
+	// Only add to product post type
+	$screen = get_current_screen();
+	
+	if ( $screen && $screen->post_type === 'product' ) {
+		add_meta_box(
+			'product_sample_file',
+			__( 'Sample File Upload', 'hello-elementor' ),
+			'product_sample_file_meta_box_callback',
+			'product',
+			'normal',
+			'high'
+		);
+	}
+}
+
+// Enqueue media scripts for product edit page
+add_action( 'admin_enqueue_scripts', 'enqueue_sample_file_upload_scripts' );
+
+function enqueue_sample_file_upload_scripts( $hook ) {
+	global $post_type;
+	
+	// Only enqueue on product edit pages
+	if ( ( $hook === 'post.php' || $hook === 'post-new.php' ) && $post_type === 'product' ) {
+		wp_enqueue_media();
+		wp_enqueue_script( 'jquery' );
+	}
+}
+
+function product_sample_file_meta_box_callback( $post ) {
+	wp_nonce_field( 'product_sample_file_meta_box', 'product_sample_file_meta_box_nonce' );
+	
+	$sample_file_id = get_post_meta( $post->ID, '_product_sample_file', true );
+	$sample_file_url = '';
+	$sample_file_name = '';
+	
+	if ( $sample_file_id ) {
+		$sample_file_url = wp_get_attachment_url( $sample_file_id );
+		$attachment = get_post( $sample_file_id );
+		if ( $attachment ) {
+			$sample_file_name = $attachment->post_title;
+			if ( empty( $sample_file_name ) ) {
+				$sample_file_name = basename( get_attached_file( $sample_file_id ) );
+			}
+		}
+	}
+	
+	echo '<table class="form-table">';
+	echo '<tr>';
+	echo '<th><label for="product_sample_file">' . __( 'Sample File', 'hello-elementor' ) . '</label></th>';
+	echo '<td>';
+	echo '<input type="hidden" id="product_sample_file" name="product_sample_file" value="' . esc_attr( $sample_file_id ) . '" />';
+	echo '<input type="button" id="upload_sample_file_button" class="button" value="' . __( 'Upload Sample File', 'hello-elementor' ) . '" />';
+	echo '<input type="button" id="remove_sample_file_button" class="button" value="' . __( 'Remove Sample File', 'hello-elementor' ) . '" style="margin-left: 10px;" />';
+	echo '<br><br>';
+	echo '<div id="sample_file_preview">';
+	if ( $sample_file_url && $sample_file_name ) {
+		echo '<p><strong>' . __( 'Current Sample File:', 'hello-elementor' ) . '</strong></p>';
+		echo '<p><a href="' . esc_url( $sample_file_url ) . '" target="_blank">' . esc_html( $sample_file_name ) . '</a></p>';
+	} else if ( $sample_file_id ) {
+		echo '<p><strong>' . __( 'Sample File ID:', 'hello-elementor' ) . '</strong> ' . esc_html( $sample_file_id ) . '</p>';
+		echo '<p style="color: red;"><em>' . __( 'File not found or may have been deleted from media library.', 'hello-elementor' ) . '</em></p>';
+	} else {
+		echo '<p><em>' . __( 'No sample file uploaded yet.', 'hello-elementor' ) . '</em></p>';
+	}
+	echo '</div>';
+	echo '</td>';
+	echo '</tr>';
+	echo '</table>';
+	
+	// Add JavaScript for file upload
+	?>
+	<script>
+	jQuery(document).ready(function($) {
+		// Ensure WordPress media uploader is available
+		if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
+			console.error('WordPress media uploader not available');
+			return;
+		}
+		
+		$('#upload_sample_file_button').click(function(e) {
+			e.preventDefault();
+			
+			var file_frame = wp.media.frames.file_frame = wp.media({
+				title: 'Select Sample File',
+				button: {
+					text: 'Use this file'
+				},
+				multiple: false
+			});
+			
+			file_frame.on('select', function() {
+				var attachment = file_frame.state().get('selection').first().toJSON();
+				
+				$('#product_sample_file').val(attachment.id);
+				
+				var filename = attachment.filename || attachment.title || 'Unknown file';
+				var fileUrl = attachment.url || '#';
+				
+				$('#sample_file_preview').html(
+					'<p><strong>Current Sample File:</strong></p>' +
+					'<p><a href="' + fileUrl + '" target="_blank">' + filename + '</a></p>'
+				);
+			});
+			
+			file_frame.open();
+		});
+		
+		$('#remove_sample_file_button').click(function(e) {
+			e.preventDefault();
+			$('#product_sample_file').val('');
+			$('#sample_file_preview').html('<p><em>No sample file uploaded yet.</em></p>');
+		});
+	});
+	</script>
+	<?php
+}
+
+// Save sample file meta data
+add_action( 'save_post', 'save_product_sample_file_meta_box_data', 10, 2 );
+
+function save_product_sample_file_meta_box_data( $post_id, $post ) {
+	// Check if this is an autosave
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+	
+	// Check if this is the right post type
+	if ( $post->post_type !== 'product' ) {
+		return;
+	}
+	
+	// Check if nonce is set
+	if ( ! isset( $_POST['product_sample_file_meta_box_nonce'] ) ) {
+		return;
+	}
+	
+	// Verify nonce
+	if ( ! wp_verify_nonce( $_POST['product_sample_file_meta_box_nonce'], 'product_sample_file_meta_box' ) ) {
+		return;
+	}
+	
+	// Check user permissions
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+	
+	// Save the sample file ID
+	if ( isset( $_POST['product_sample_file'] ) ) {
+		$sample_file_id = sanitize_text_field( $_POST['product_sample_file'] );
+		
+		// If empty, delete the meta
+		if ( empty( $sample_file_id ) ) {
+			delete_post_meta( $post_id, '_product_sample_file' );
+		} else {
+			// Validate that the attachment exists
+			$attachment = get_post( $sample_file_id );
+			
+			if ( $attachment && $attachment->post_type === 'attachment' ) {
+				update_post_meta( $post_id, '_product_sample_file', $sample_file_id );
+			}
+		}
+	}
+}
+
 // Register custom post type 'Whois Database' and taxonomy 'Types'
 add_action( 'init', 'register_whois_database_post_type' );
 function register_whois_database_post_type() {
@@ -971,6 +1139,41 @@ function get_database_autocomplete_ajax() {
 	wp_send_json_success( $results );
 }
 
+// AJAX handler for downloading sample file
+add_action( 'wp_ajax_download_sample_file', 'download_sample_file_ajax' );
+add_action( 'wp_ajax_nopriv_download_sample_file', 'download_sample_file_ajax' );
+
+function download_sample_file_ajax() {
+	if ( ! wp_verify_nonce( $_POST['nonce'], 'download_sample_file_nonce' ) ) {
+		wp_die( 'Security check failed' );
+	}
+	
+	$product_id = intval( $_POST['product_id'] );
+	
+	if ( ! $product_id ) {
+		wp_send_json_error( array( 'message' => 'Invalid product ID' ) );
+	}
+	
+	// Get the sample file ID
+	$sample_file_id = get_post_meta( $product_id, '_product_sample_file', true );
+	
+	if ( ! $sample_file_id ) {
+		wp_send_json_error( array( 'message' => 'No sample file available for this product' ) );
+	}
+	
+	// Get the file URL
+	$sample_file_url = wp_get_attachment_url( $sample_file_id );
+	
+	if ( ! $sample_file_url ) {
+		wp_send_json_error( array( 'message' => 'Sample file not found' ) );
+	}
+	
+	wp_send_json_success( array( 
+		'download_url' => $sample_file_url,
+		'filename' => get_the_title( $sample_file_id )
+	) );
+}
+
 // AJAX handler for searching database files
 add_action( 'wp_ajax_search_database_files', 'search_database_files_ajax' );
 add_action( 'wp_ajax_nopriv_search_database_files', 'search_database_files_ajax' );
@@ -1051,12 +1254,23 @@ function search_database_files_ajax() {
 			$html .= '<td>' . esc_html( $state_name ) . '</td>';
 			$html .= '<td>';
 			
-			// Use product permalink as download link for products
-			if ( is_user_logged_in() ) {
-				$html .= '<a href="' . esc_url( get_permalink() ) . '" class="download-btn" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a>';
+			// Check if sample file exists
+			$sample_file_id = get_post_meta( get_the_ID(), '_product_sample_file', true );
+			
+			if ( $sample_file_id ) {
+				// Sample file exists - use AJAX download
+				if ( is_user_logged_in() ) {
+					$html .= '<button class="download-btn file-found user-login" data-product-id="' . get_the_ID() . '">' . esc_html__( 'Download Sample', 'hello-elementor' ) . '</button>';
+				} else {
+					$html .= '<button class="download-btn file-found user-logout" data-product-id="' . get_the_ID() . '">' . esc_html__( 'Download Sample', 'hello-elementor' ) . '</button>';
+				}
 			} else {
-				$html .= '<button class="download-btn" onclick="alert(\'You need to login first to download files.\')">' . esc_html__( 'Download', 'hello-elementor' ) . '</button>';
+				// No sample file - link to product page
+				$html .= '<button class="download-btn file-not-found" data-product-id="' . get_the_ID() . '">' . esc_html__( 'Download Sample', 'hello-elementor' ) . '</button>';
 			}
+			
+			// Add View Product Details button
+			$html .= ' <a href="' . esc_url( get_permalink() ) . '" class="view-details-btn" target="_blank">' . esc_html__( 'View Details', 'hello-elementor' ) . '</a>';
 			
 			$html .= '</td>';
 			$html .= '</tr>';

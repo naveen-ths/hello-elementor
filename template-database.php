@@ -62,7 +62,116 @@ get_header();
     </div>
 </div>
 
+<!-- Alert Modal -->
+<div id="alert-modal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Alert</h3>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="modal-message">This is an alert message.</p>
+        </div>
+        <div class="modal-footer">
+            <button id="modal-ok-btn" class="modal-btn">OK</button>
+        </div>
+    </div>
+</div>
+
 <style>
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.modal-header {
+    background: #ff5555;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 5px;
+}
+
+.modal-close:hover {
+    opacity: 0.7;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    text-align: right;
+    border-top: 1px solid #eee;
+}
+
+.modal-btn {
+    background: #ff5555;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.modal-btn:hover {
+    background: #e74c3c;
+}
+
+/* Search Styles */
 .search-input-wrapper input:focus {
     border-color: #ff5555;
 }
@@ -125,10 +234,29 @@ get_header();
     text-decoration: none;
     display: inline-block;
     font-size: 14px;
+    margin-right: 8px;
 }
 
 .download-btn:hover {
     background: #e74c3c;
+    color: white;
+    text-decoration: none;
+}
+
+.view-details-btn {
+    background: #3498db;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+}
+
+.view-details-btn:hover {
+    background: #2980b9;
     color: white;
     text-decoration: none;
 }
@@ -137,6 +265,34 @@ get_header();
 <script>
 jQuery(document).ready(function($) {
     let searchTimeout;
+    
+    // Modal functions
+    function showAlertModal(title, message) {
+        $('#modal-title').text(title);
+        $('#modal-message').text(message);
+        $('#alert-modal').fadeIn(300);
+    }
+    
+    function hideAlertModal() {
+        $('#alert-modal').fadeOut(300);
+    }
+    
+    // Modal event handlers
+    $('.modal-close, #modal-ok-btn, .modal-overlay').click(function() {
+        hideAlertModal();
+    });
+    
+    // Prevent modal content clicks from closing modal
+    $('.modal-content').click(function(e) {
+        e.stopPropagation();
+    });
+    
+    // ESC key to close modal
+    $(document).keydown(function(e) {
+        if (e.keyCode === 27) {
+            hideAlertModal();
+        }
+    });
     
     // Don't load initial database files - table should be hidden initially
     
@@ -232,8 +388,54 @@ jQuery(document).ready(function($) {
     $(document).on('click', '.download-btn', function(e) {
         <?php if (!is_user_logged_in()): ?>
         e.preventDefault();
-        alert('You need to login first to download files.');
+        showAlertModal('Login Required', 'You need to login first to download sample files.');
         return false;
+        <?php else: ?>
+        var productId = $(this).data('product-id');
+        
+        if (productId) {
+            e.preventDefault();
+            
+            // Show loading state
+            $(this).text('Downloading...');
+            $(this).prop('disabled', true);
+            
+            var downloadBtn = $(this);
+            
+            $.ajax({
+                url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                type: 'POST',
+                data: {
+                    action: 'download_sample_file',
+                    product_id: productId,
+                    nonce: '<?php echo wp_create_nonce('download_sample_file_nonce'); ?>'
+                },
+                success: function(response) {
+                    downloadBtn.text('Download Sample');
+                    downloadBtn.prop('disabled', false);
+                    
+                    if (response.success) {
+                        // Create a temporary download link
+                        var link = document.createElement('a');
+                        link.href = response.data.download_url;
+                        link.download = response.data.filename;
+                        link.target = '_blank';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        showAlertModal('Download Started', 'Your sample file download has started successfully.');
+                    } else {
+                        showAlertModal('Download Failed', response.data.message || 'Download failed. Please try again.');
+                    }
+                },
+                error: function() {
+                    downloadBtn.text('Download Sample');
+                    downloadBtn.prop('disabled', false);
+                    showAlertModal('Download Error', 'Download failed. Please try again.');
+                }
+            });
+        }
         <?php endif; ?>
     });
     
