@@ -22,10 +22,229 @@ get_header();
     <div id="loading-spinner" style="display: none; margin-top: 10px;">
       <span><?php echo esc_html__('Loading...', 'hello-elementor'); ?></span>
     </div>
-  </div>
+    </div>
+</div>
+
+<!-- Database Files Search Section -->
+<div class="database-search-container" style="max-width: 1200px; margin: 50px auto 0; padding: 20px;">
+    <div class="search-header" style="text-align: center; margin-bottom: 30px;">
+        <h2 style="font-size: 36px; font-weight: bold; margin-bottom: 10px;">100 CR OLDER DATABASE</h2>
+        <p style="color: #888; font-size: 18px;">Top in India Database Service Provider</p>
+    </div>
+    
+    <div class="search-box-container" style="margin-bottom: 30px;">
+        <div class="search-input-wrapper" style="display: flex; max-width: 800px; margin: 0 auto;">
+            <input type="text" id="database-search-input" placeholder="Type to start searching..." 
+                   style="flex: 1; padding: 15px 20px; font-size: 16px; border: 2px solid #ddd; border-right: none; outline: none;">
+            <button id="database-search-btn" style="padding: 15px 30px; background: #333; color: white; border: none; font-size: 16px; cursor: pointer;">
+                Search
+            </button>
+        </div>
+        <div id="search-autocomplete" style="position: relative; max-width: 800px; margin: 0 auto;">
+            <!-- Autocomplete suggestions will appear here -->
+        </div>
+    </div>
+    
+    <div id="database-results-container" style="display: none;">
+        <table id="database-files-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+                <tr style="background: #ff5555; color: white;">
+                    <th style="padding: 15px; text-align: left; font-weight: bold;">Database Name</th>
+                    <th style="padding: 15px; text-align: left; font-weight: bold;">Category</th>
+                    <th style="padding: 15px; text-align: left; font-weight: bold;">State</th>
+                    <th style="padding: 15px; text-align: left; font-weight: bold;">Downloads</th>
+                </tr>
+            </thead>
+            <tbody id="database-results-body">
+                <!-- Results will be loaded here -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <style>
+.search-input-wrapper input:focus {
+    border-color: #ff5555;
+}
+
+#database-search-btn:hover {
+    background: #555;
+}
+
+#search-autocomplete {
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 80px;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.autocomplete-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.autocomplete-item:hover {
+    background: #f5f5f5;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+#database-files-table tbody tr {
+    border-bottom: 1px solid #ddd;
+}
+
+#database-files-table tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+#database-files-table tbody td {
+    padding: 12px 15px;
+}
+
+.download-btn {
+    background: #ff5555;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+}
+
+.download-btn:hover {
+    background: #e74c3c;
+    color: white;
+    text-decoration: none;
+}
+</style>
+
+<script>
+jQuery(document).ready(function($) {
+    let searchTimeout;
+    
+    // Don't load initial database files - table should be hidden initially
+    
+    // Search input autocomplete
+    $('#database-search-input').on('input', function() {
+        const query = $(this).val().trim();
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length >= 2) {
+            searchTimeout = setTimeout(function() {
+                getAutocomplete(query);
+            }, 300);
+        } else {
+            $('#search-autocomplete .autocomplete-dropdown').remove();
+        }
+    });
+    
+    // Search button click
+    $('#database-search-btn').click(function() {
+        const query = $('#database-search-input').val().trim();
+        searchDatabaseFiles(query);
+        $('#database-results-container').show();
+    });
+    
+    // Enter key search
+    $('#database-search-input').keypress(function(e) {
+        if (e.which == 13) {
+            $('#database-search-btn').click();
+        }
+    });
+    
+    function getAutocomplete(query) {
+        $.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: {
+                action: 'get_database_autocomplete',
+                query: query,
+                nonce: '<?php echo wp_create_nonce('database_autocomplete_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAutocomplete(response.data);
+                }
+            }
+        });
+    }
+    
+    function showAutocomplete(items) {
+        $('#search-autocomplete .autocomplete-dropdown').remove();
+        
+        if (items.length > 0) {
+            let dropdown = $('<div class="autocomplete-dropdown"></div>');
+            
+            items.forEach(function(item) {
+                let autocompleteItem = $('<div class="autocomplete-item"></div>')
+                    .text(item.title)
+                    .click(function() {
+                        $('#database-search-input').val(item.title);
+                        dropdown.remove();
+                        searchDatabaseFiles(item.title);
+                    });
+                dropdown.append(autocompleteItem);
+            });
+            
+            $('#search-autocomplete').append(dropdown);
+        }
+    }
+    
+    function searchDatabaseFiles(query = '') {
+        $.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: {
+                action: 'search_database_files',
+                query: query,
+                nonce: '<?php echo wp_create_nonce('search_database_files_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#database-results-body').html(response.data.html);
+                }
+            }
+        });
+    }
+    
+    function loadDatabaseFiles() {
+        searchDatabaseFiles('');
+    }
+    
+    // Handle download clicks
+    $(document).on('click', '.download-btn', function(e) {
+        <?php if (!is_user_logged_in()): ?>
+        e.preventDefault();
+        alert('You need to login first to download files.');
+        return false;
+        <?php endif; ?>
+    });
+    
+    // Hide autocomplete when clicking outside
+    $(document).click(function(e) {
+        if (!$(e.target).closest('#search-autocomplete, #database-search-input').length) {
+            $('#search-autocomplete .autocomplete-dropdown').remove();
+        }
+    });
+});
+</script><style>
   .database-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);

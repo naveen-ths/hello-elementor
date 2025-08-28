@@ -885,3 +885,107 @@ function load_database_products_ajax() {
 		'max_pages' => $products_query->max_num_pages
 	) );
 }
+
+// AJAX handler for database files autocomplete
+add_action( 'wp_ajax_get_database_autocomplete', 'get_database_autocomplete_ajax' );
+add_action( 'wp_ajax_nopriv_get_database_autocomplete', 'get_database_autocomplete_ajax' );
+
+function get_database_autocomplete_ajax() {
+	if ( ! wp_verify_nonce( $_POST['nonce'], 'database_autocomplete_nonce' ) ) {
+		wp_die( 'Security check failed' );
+	}
+	
+	$query = sanitize_text_field( $_POST['query'] );
+	
+	$args = array(
+		'post_type' => 'database_files',
+		'post_status' => 'publish',
+		'posts_per_page' => 10,
+		's' => $query,
+	);
+	
+	$database_query = new WP_Query( $args );
+	$results = array();
+	
+	if ( $database_query->have_posts() ) {
+		while ( $database_query->have_posts() ) {
+			$database_query->the_post();
+			$results[] = array(
+				'id' => get_the_ID(),
+				'title' => get_the_title(),
+			);
+		}
+	}
+	
+	wp_reset_postdata();
+	wp_send_json_success( $results );
+}
+
+// AJAX handler for searching database files
+add_action( 'wp_ajax_search_database_files', 'search_database_files_ajax' );
+add_action( 'wp_ajax_nopriv_search_database_files', 'search_database_files_ajax' );
+
+function search_database_files_ajax() {
+	if ( ! wp_verify_nonce( $_POST['nonce'], 'search_database_files_nonce' ) ) {
+		wp_die( 'Security check failed' );
+	}
+	
+	$query = sanitize_text_field( $_POST['query'] );
+	
+	$args = array(
+		'post_type' => 'database_files',
+		'post_status' => 'publish',
+		'posts_per_page' => -1,
+	);
+	
+	if ( ! empty( $query ) ) {
+		$args['s'] = $query;
+	}
+	
+	$database_query = new WP_Query( $args );
+	$html = '';
+	
+	if ( $database_query->have_posts() ) {
+		while ( $database_query->have_posts() ) {
+			$database_query->the_post();
+			$file_id = get_post_meta( get_the_ID(), '_database_files_file_id', true );
+			$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+			$state = get_post_meta( get_the_ID(), '_database_files_state', true );
+			
+			// Get category
+			$categories = get_the_terms( get_the_ID(), 'database_files_category' );
+			$category_name = '';
+			if ( $categories && ! is_wp_error( $categories ) ) {
+				$category_name = $categories[0]->name;
+			}
+			
+			$html .= '<tr>';
+			$html .= '<td>' . esc_html( get_the_title() ) . '</td>';
+			$html .= '<td>' . esc_html( $category_name ? $category_name : 'N/A' ) . '</td>';
+			$html .= '<td>' . esc_html( $state ? $state : 'All India' ) . '</td>';
+			$html .= '<td>';
+			
+			if ( $file_url ) {
+				if ( is_user_logged_in() ) {
+					$html .= '<a href="' . esc_url( $file_url ) . '" class="download-btn" target="_blank">' . esc_html__( 'Download', 'hello-elementor' ) . '</a>';
+				} else {
+					$html .= '<button class="download-btn" onclick="alert(\'You need to login first to download files.\')">' . esc_html__( 'Download', 'hello-elementor' ) . '</button>';
+				}
+			} else {
+				$html .= '<span style="color: #999;">' . esc_html__( 'No file', 'hello-elementor' ) . '</span>';
+			}
+			
+			$html .= '</td>';
+			$html .= '</tr>';
+		}
+	} else {
+		$html .= '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #999;">' . esc_html__( 'No database files found.', 'hello-elementor' ) . '</td></tr>';
+	}
+	
+	wp_reset_postdata();
+	
+	wp_send_json_success( array(
+		'html' => $html,
+		'count' => $database_query->found_posts
+	) );
+}
