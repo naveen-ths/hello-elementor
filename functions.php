@@ -300,7 +300,7 @@ function register_product_state_taxonomy() {
 		'hierarchical' => true,
 		'labels' => $labels,
 		'show_ui' => true,
-		'show_admin_column' => true,
+		'show_admin_column' => false,
 		'query_var' => true,
 		'rewrite' => array( 'slug' => 'product-state' ),
 		'show_in_rest' => true,
@@ -316,7 +316,7 @@ function add_product_sample_file_meta_box() {
 	
 	if ( $screen && $screen->post_type === 'product' ) {
 		add_meta_box(
-			'product_sample_file',
+			'product_sample_file_box',
 			__( 'Sample File Upload', 'hello-elementor' ),
 			'product_sample_file_meta_box_callback',
 			'product',

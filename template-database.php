@@ -11,6 +11,10 @@ get_header();
 <div class="database-products-container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
   <h1><?php the_title(); ?></h1>
 
+  <div class="page-content">
+		<?php the_content(); ?>
+	</div>
+
   <div id="database-products-grid" class="database-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px;">
     <!-- Products will be loaded here -->
   </div>
