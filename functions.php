@@ -1286,3 +1286,31 @@ function search_database_files_ajax() {
 		'count' => $products_query->found_posts
 	) );
 }
+
+// Add sample file download button below product description
+add_action( 'woocommerce_single_product_summary', 'add_sample_file_download_button', 25 );
+function add_sample_file_download_button() {
+	global $product;
+	
+	if ( ! $product ) {
+		return;
+	}
+	
+	$sample_file_id = get_post_meta( $product->get_id(), '_product_sample_file', true );
+	
+	if ( $sample_file_id ) {
+		$file_url = wp_get_attachment_url( $sample_file_id );
+		$file_name = basename( get_attached_file( $sample_file_id ) );
+		
+		if ( $file_url ) {
+			echo '<div class="sample-file-download" style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;">';
+			echo '<h4 style="margin: 0 0 10px 0; color: #333;">' . esc_html__( 'Data Sample File', 'hello-elementor' ) . '</h4>';
+			// echo '<p style="margin: 0 0 10px 0; color: #666;">' . esc_html__( 'Download a sample of this product to preview its contents.', 'hello-elementor' ) . '</p>';
+			echo '<a href="' . esc_url( $file_url ) . '" class="button alt sample-download-btn" download="' . esc_attr( $file_name ) . '" target="_blank" style="background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block;">';
+			echo '<span class="dashicons dashicons-download" style="margin-right: 5px;"></span>';
+			echo esc_html__( 'Download Sample File', 'hello-elementor' );
+			echo '</a>';
+			echo '</div>';
+		}
+	}
+}
