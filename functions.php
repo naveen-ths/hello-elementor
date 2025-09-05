@@ -1305,11 +1305,21 @@ function add_sample_file_download_button() {
 		if ( $file_url ) {
 			echo '<div class="sample-file-download" style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;">';
 			echo '<h4 style="margin: 0 0 10px 0; color: #333;">' . esc_html__( 'Data Sample File', 'hello-elementor' ) . '</h4>';
-			// echo '<p style="margin: 0 0 10px 0; color: #666;">' . esc_html__( 'Download a sample of this product to preview its contents.', 'hello-elementor' ) . '</p>';
-			echo '<a href="' . esc_url( $file_url ) . '" class="button alt sample-download-btn" download="' . esc_attr( $file_name ) . '" target="_blank" style="background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block;">';
-			echo '<span class="dashicons dashicons-download" style="margin-right: 5px;"></span>';
-			echo esc_html__( 'Download Sample File', 'hello-elementor' );
-			echo '</a>';
+			// For logged-in users provide direct download link, for guests show alert via JS
+			if ( is_user_logged_in() ) {
+				echo '<a href="' . esc_url( $file_url ) . '" class="button alt sample-download-btn" download="' . esc_attr( $file_name ) . '" target="_blank" style="background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block;">';
+				echo '<span class="dashicons dashicons-download" style="margin-right: 5px;"></span>';
+				echo esc_html__( 'Download Sample File', 'hello-elementor' );
+				echo '</a>';
+			} else {
+				// Non-logged users: render a button that triggers a login alert
+				echo '<button type="button" class="button alt sample-download-btn-guest" data-login-url="' . esc_url( wp_login_url( get_permalink() ) ) . '" style="background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 3px; display: inline-block; border: none;">';
+				echo '<span class="dashicons dashicons-download" style="margin-right: 5px;"></span>';
+				echo esc_html__( 'Download Sample File', 'hello-elementor' );
+				echo '</button>';
+				// Inline JS to handle guest click (keeps change minimal)
+				echo '<script>document.addEventListener("DOMContentLoaded", function(){var btn=document.querySelector(".sample-download-btn-guest"); if(btn){btn.addEventListener("click", function(e){e.preventDefault(); if(confirm("You must be logged in to download sample files.\\n\\nClick OK to go to the login page.")){ window.location.href = "/my-account/"; } }); }});</script>';
+			}
 			echo '</div>';
 		}
 	}
