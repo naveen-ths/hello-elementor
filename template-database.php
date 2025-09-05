@@ -318,10 +318,14 @@ jQuery(document).ready(function($) {
     // Search button click
     $('#database-search-btn').click(function() {
         const query = $('#database-search-input').val().trim();
-        searchDatabaseFiles(query);
+        // Normalize common dash entities to simple hyphen-minus for search consistency
+        const normalizedQuery = query
+            .replace(/&#8211;|&#8212;|\u2013|\u2014/g, ' - ')
+            .replace(/\s*-+\s*/g, ' - ');
+        searchDatabaseFiles(normalizedQuery);
         $('#database-results-container').show();
     });
-    
+
     // Enter key search
     $('#database-search-input').keypress(function(e) {
         if (e.which == 13) {
@@ -348,21 +352,23 @@ jQuery(document).ready(function($) {
     
     function showAutocomplete(items) {
         $('#search-autocomplete .autocomplete-dropdown').remove();
-        
+
         if (items.length > 0) {
             let dropdown = $('<div class="autocomplete-dropdown"></div>');
-            
+
             items.forEach(function(item) {
                 let autocompleteItem = $('<div class="autocomplete-item"></div>')
                     .text(item.title)
                     .click(function() {
-                        $('#database-search-input').val(item.title);
+                        // Normalize title before setting input and searching
+                        const normTitle = item.title.replace(/&#8211;|&#8212;|\u2013|\u2014/g, ' - ').replace(/\s*-+\s*/g, ' - ');
+                        $('#database-search-input').val(normTitle);
                         dropdown.remove();
-                        searchDatabaseFiles(item.title);
+                        searchDatabaseFiles(normTitle);
                     });
                 dropdown.append(autocompleteItem);
             });
-            
+
             $('#search-autocomplete').append(dropdown);
         }
     }
