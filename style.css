@@ -580,3 +580,9 @@ li {
   vertical-align: baseline;
   background: transparent;
 }
+.woocommerce-Input.woocommerce-Input--text.input-text {
+  border: solid 1px #666666 !important;
+}
+.elementor-element-58d54f29:hover {
+  background-color: #f5f5f5;
+}
