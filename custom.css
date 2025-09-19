@@ -1,0 +1,528 @@
+/**
+ * Custom CSS for Hello Elementor Theme
+ * 
+ * This file contains custom styles that extend the theme's functionality
+ * and provide additional styling for specific components.
+ * 
+ * @package HelloElementor
+ * @author  Your Name
+ * @version 1.0.0
+ */
+
+/* ==========================================================================
+   Custom Global Styles
+   ========================================================================== */
+
+:root {
+    --primary-color: #ff4444;
+    --primary-hover: #ff3333;
+    --secondary-color: #333333;
+    --light-gray: #f8f9fa;
+    --border-color: #e9ecef;
+    --border-radius: 12px;
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+/* ==========================================================================
+   Button Styles
+   ========================================================================== */
+
+.btn-custom {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #ff6666 100%);
+    border: none;
+    border-radius: var(--border-radius);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-custom:hover {
+    background: linear-gradient(135deg, var(--primary-hover) 0%, #ff5555 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 68, 68, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-custom:active {
+    transform: translateY(0);
+}
+
+/* ==========================================================================
+   Card Components
+   ========================================================================== */
+
+.card-custom {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 30px;
+    margin-bottom: 30px;
+    transition: var(--transition);
+    border: 1px solid rgba(255, 68, 68, 0.1);
+}
+
+.card-custom:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.card-custom-header {
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.card-custom-title {
+    color: var(--secondary-color);
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ==========================================================================
+   Form Enhancements
+   ========================================================================== */
+
+.form-group-custom {
+    margin-bottom: 20px;
+}
+
+.form-label-custom {
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-input-custom {
+    background: var(--light-gray);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--secondary-color);
+    font-size: 16px;
+    padding: 16px 20px;
+    width: 100%;
+    transition: var(--transition);
+    font-family: inherit;
+    outline: none;
+}
+
+.form-input-custom:focus {
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.1);
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   Alert Messages
+   ========================================================================== */
+
+.alert-custom {
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    font-weight: 500;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: rgba(40, 167, 69, 0.1);
+    color: #155724;
+    border-left-color: #28a745;
+}
+
+.alert-error {
+    background: rgba(255, 68, 68, 0.1);
+    color: #721c24;
+    border-left-color: var(--primary-color);
+}
+
+.alert-warning {
+    background: rgba(255, 193, 7, 0.1);
+    color: #856404;
+    border-left-color: #ffc107;
+}
+
+.alert-info {
+    background: rgba(23, 162, 184, 0.1);
+    color: #0c5460;
+    border-left-color: #17a2b8;
+}
+
+/* ==========================================================================
+   Loading States
+   ========================================================================== */
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 68, 68, 0.3);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-overlay .loading-spinner {
+    width: 50px;
+    height: 50px;
+    border-width: 5px;
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-10 { margin-top: 10px; }
+.mt-20 { margin-top: 20px; }
+.mt-30 { margin-top: 30px; }
+.mb-10 { margin-bottom: 10px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-30 { margin-bottom: 30px; }
+
+.p-10 { padding: 10px; }
+.p-20 { padding: 20px; }
+.p-30 { padding: 30px; }
+
+.text-primary { color: var(--primary-color); }
+.text-secondary { color: var(--secondary-color); }
+
+.bg-light { background-color: var(--light-gray); }
+.bg-white { background-color: white; }
+
+.border-radius { border-radius: var(--border-radius); }
+.box-shadow { box-shadow: var(--box-shadow); }
+
+.transition { transition: var(--transition); }
+
+/* ==========================================================================
+   Responsive Utilities
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .card-custom {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .btn-custom {
+        padding: 14px 20px;
+        font-size: 15px;
+    }
+    
+    .form-input-custom {
+        padding: 14px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-custom {
+        padding: 15px;
+    }
+    
+    .card-custom-title {
+        font-size: 20px;
+    }
+}
+
+/* ==========================================================================
+   Accessibility Enhancements
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .card-custom {
+        border: 2px solid #000;
+    }
+    
+    .form-input-custom {
+        border: 2px solid #000;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.btn-custom:focus,
+.form-input-custom:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Swiper Slide Components - Clean Circular Design
+   ========================================================================== */
+
+.elementor-element-f668ffe .swiper-slide {
+    position: relative;
+    transition: var(--transition);
+    cursor: pointer;
+    padding: 20px 10px;
+    text-align: center;
+    color: #fff;
+}
+
+.elementor-element-f668ffe .swiper-slide:hover {
+    transform: translateY(-5px);
+    background-color: #fff !important;
+    color: #000 !important;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.elementor-element-f668ffe .swiper-slide-inner {
+    position: relative;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+/* .elementor-324 .elementor-element.elementor-element-ec79bc9 .elementor-image-carousel-caption {
+	color: #FFFFFF;
+} */
+
+.elementor-element-f668ffe .swiper-slide-image {
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 50% !important;
+    background: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px auto;
+    transition: var(--transition);
+    padding: 20px;
+    object-fit: contain;
+    /* Remove any filters that might be hiding the icons */
+    filter: none !important;
+}
+
+.elementor-element-f668ffe .swiper-slide:hover .swiper-slide-image {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.elementor-element-f668ffe .elementor-image-carousel-caption {
+    color: #fff;
+    font-weight: 600;
+    font-size: 15px;
+    text-align: center;
+    margin: 0;
+    transition: var(--transition);
+    line-height: 1.4;
+    max-width: 120px;
+    margin: 0 auto;
+    font-style: normal;
+}
+
+.elementor-element-f668ffe .swiper-slide:hover .elementor-image-carousel-caption {
+    color: #000 !important;
+    transform: translateY(-2px);
+}
+/* Alternative styling for better icon visibility */
+.elementor-element-f668ffe .swiper-slide-inner figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+}
+
+.elementor-element-f668ffe .swiper-slide-inner img {
+    /* Ensure icons are visible with proper styling */
+    width: auto;
+    height: auto;
+    filter: none !important;
+    transition: var(--transition);
+    opacity: 1 !important;
+}
+
+.elementor-element-f668ffe .swiper-slide:hover .swiper-slide-inner img {
+    transform: scale(1.1);
+    opacity: 0.8;
+    background-color: #000;
+}
+
+
+/* Enhanced circular design */
+.elementor-element-f668ffe .swiper-slide-inner::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(255, 102, 102, 0.1) 100%);
+    opacity: 0;
+    transition: var(--transition);
+    z-index: -1;
+}
+
+.elementor-element-f668ffe .swiper-slide:hover .swiper-slide-inner::before {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.1);
+}
+
+/* Specific targeting for image carousel images */
+.elementor-element-f668ffe .swiper-slide .swiper-slide-image img,
+.elementor-element-f668ffe .swiper-slide figure img,
+.elementor-element-f668ffe .elementor-image-carousel img {
+    filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Responsive adjustments for swiper slides */
+@media (max-width: 768px) {
+    .elementor-element-f668ffe .swiper-slide {
+        padding: 15px 8px;
+    }
+    
+    .elementor-element-f668ffe .swiper-slide-image {
+        width: 70px;
+        height: 70px;
+        padding: 15px;
+        margin-bottom: 12px;
+    }
+    
+    .elementor-element-f668ffe .elementor-image-carousel-caption {
+        font-size: 13px;
+        max-width: 100px;
+    }
+    
+    .elementor-element-f668ffe .swiper-slide-inner::before {
+        width: 74px;
+        height: 74px;
+    }
+}
+
+@media (max-width: 480px) {
+    .elementor-element-f668ffe .swiper-slide {
+        padding: 12px 6px;
+    }
+    
+    .elementor-element-f668ffe .swiper-slide-image {
+        width: 60px;
+        height: 60px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+    
+    .elementor-element-f668ffe .elementor-image-carousel-caption {
+        font-size: 12px;
+        max-width: 90px;
+    }
+    
+    .elementor-element-f668ffe .swiper-slide-inner::before {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+/* Accessibility: Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .elementor-element-f668ffe .swiper-slide,
+    .elementor-element-f668ffe .swiper-slide-inner,
+    .elementor-element-f668ffe .swiper-slide-image,
+    .elementor-element-f668ffe .elementor-image-carousel-caption {
+        transition: none !important;
+    }
+    
+    .elementor-element-f668ffe .swiper-slide:hover {
+        transform: none !important;
+    }
+    
+    .elementor-element-f668ffe .swiper-slide:hover .swiper-slide-image {
+        transform: none !important;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .swiper-slide,
+    .swiper-slide-inner,
+    .swiper-slide-image,
+    .elementor-image-carousel-caption {
+        transition: none !important;
+    }
+    
+    .swiper-slide:hover {
+        transform: none !important;
+    }
+    
+    .swiper-slide:hover .swiper-slide-image {
+        transform: none !important;
+    }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+    .btn-custom,
+    .loading-spinner,
+    .loading-overlay {
+        display: none !important;
+    }
+    
+    .card-custom {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}
+.post-2487 .entry-title, .post-2486 .entry-title {
+  text-align: center;
+}
+.um-register, .um-login {
+  border: 1px solid #ddd;
+  padding: 20px;
+}
+.elementor-element-7e4d6743, .elementor-element-375c9edb, .elementor-element-2959305d{
+    display: none;
+}
