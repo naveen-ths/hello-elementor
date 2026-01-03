@@ -978,6 +978,20 @@ function register_whois_database_files_endpoint()
 	add_rewrite_endpoint('whois-database-files', EP_ROOT | EP_PAGES);
 }
 
+// Register Database Products endpoint
+add_action('init', 'register_database_products_endpoint');
+function register_database_products_endpoint()
+{
+	add_rewrite_endpoint('database-products', EP_ROOT | EP_PAGES);
+}
+
+// Register Whois Products endpoint
+add_action('init', 'register_whois_products_endpoint');
+function register_whois_products_endpoint()
+{
+	add_rewrite_endpoint('whois-products', EP_ROOT | EP_PAGES);
+}
+
 add_action('after_switch_theme', 'whois_database_flush_rewrite_rules');
 function whois_database_flush_rewrite_rules()
 {
@@ -1059,6 +1073,190 @@ function whois_database_files_endpoint_content()
 		}
 		echo '</tbody></table>';
 		wp_reset_postdata();
+	}
+}
+
+// Database Products endpoint content
+add_action('woocommerce_account_database-products_endpoint', 'database_products_endpoint_content');
+function database_products_endpoint_content()
+{
+	if (!is_user_logged_in()) {
+		echo '<p>' . esc_html__('You must be logged in to view this page.', 'hello-elementor') . '</p>';
+		return;
+	}
+
+	echo '<h2>' . esc_html__('Database Packages', 'hello-elementor') . '</h2>';
+
+	// Get user's ordered product IDs from database-packages category
+	$user_id = get_current_user_id();
+	$ordered_product_ids = array();
+
+	// Get user's orders
+	$orders = wc_get_orders(array(
+		'customer' => $user_id,
+		'status' => array('wc-completed', 'wc-processing', 'wc-on-hold'),
+		'limit' => -1,
+	));
+
+	foreach ($orders as $order) {
+		foreach ($order->get_items() as $item) {
+			$product_id = $item->get_product_id();
+			// Check if product belongs to database-packages category
+			if (has_term('database-packages', 'product_cat', $product_id)) {
+				$ordered_product_ids[] = $product_id;
+			}
+		}
+	}
+
+	$ordered_product_ids = array_unique($ordered_product_ids);
+
+	if (!empty($ordered_product_ids)) {
+		// Display ordered products
+		$args = array(
+			'post_type' => 'product',
+			'post_status' => 'publish',
+			'posts_per_page' => -1,
+			'post__in' => $ordered_product_ids,
+			'orderby' => 'post__in',
+		);
+
+		$products_query = new WP_Query($args);
+
+		echo '<table class="shop_table shop_table_responsive my_account_database_products"><thead><tr>';
+		echo '<th>' . esc_html__('Product', 'hello-elementor') . '</th>';
+		echo '<th>' . esc_html__('Order Date', 'hello-elementor') . '</th>';
+		echo '<th>' . esc_html__('Status', 'hello-elementor') . '</th>';
+		echo '<th>' . esc_html__('Action', 'hello-elementor') . '</th>';
+		echo '</tr></thead><tbody>';
+
+		while ($products_query->have_posts()) {
+			$products_query->the_post();
+			$product = wc_get_product(get_the_ID());
+
+			// Find the latest order for this product
+			$latest_order = null;
+			foreach ($orders as $order) {
+				foreach ($order->get_items() as $item) {
+					if ($item->get_product_id() == get_the_ID()) {
+						$latest_order = $order;
+						break 2;
+					}
+				}
+			}
+
+			echo '<tr>';
+			echo '<td><a href="' . esc_url(get_permalink()) . '">' . esc_html(get_the_title()) . '</a></td>';
+			if ($latest_order) {
+				echo '<td>' . esc_html($latest_order->get_date_created()->date_i18n(get_option('date_format'))) . '</td>';
+				echo '<td>' . esc_html(wc_get_order_status_name($latest_order->get_status())) . '</td>';
+			} else {
+				echo '<td>-</td>';
+				echo '<td>-</td>';
+			}
+			echo '<td><a href="' . esc_url(get_permalink()) . '" class="button">' . esc_html__('View Product', 'hello-elementor') . '</a></td>';
+			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
+		wp_reset_postdata();
+	} else {
+		// No orders found - show shop button
+		echo '<div class="woocommerce-message woocommerce-message--info woocommerce-Message woocommerce-Message--info" style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 10px;">';
+		echo '<p style="font-size: 16px; color: #666; margin-bottom: 20px;">' . esc_html__('You haven\'t ordered any Database Packages yet.', 'hello-elementor') . '</p>';
+		echo '<a href="' . esc_url(home_url('/shop/')) . '" class="button" style="background: var(--primary-color); color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; display: inline-block;">' . esc_html__('Browse Products', 'hello-elementor') . '</a>';
+		echo '</div>';
+	}
+}
+
+// Whois Products endpoint content
+add_action('woocommerce_account_whois-products_endpoint', 'whois_products_endpoint_content');
+function whois_products_endpoint_content()
+{
+	if (!is_user_logged_in()) {
+		echo '<p>' . esc_html__('You must be logged in to view this page.', 'hello-elementor') . '</p>';
+		return;
+	}
+
+	echo '<h2>' . esc_html__('Whois Database Products', 'hello-elementor') . '</h2>';
+
+	// Get user's ordered product IDs from whois-database category
+	$user_id = get_current_user_id();
+	$ordered_product_ids = array();
+
+	// Get user's orders
+	$orders = wc_get_orders(array(
+		'customer' => $user_id,
+		'status' => array('wc-completed', 'wc-processing', 'wc-on-hold'),
+		'limit' => -1,
+	));
+
+	foreach ($orders as $order) {
+		foreach ($order->get_items() as $item) {
+			$product_id = $item->get_product_id();
+			// Check if product belongs to whois-database category
+			if (has_term('whois-database', 'product_cat', $product_id)) {
+				$ordered_product_ids[] = $product_id;
+			}
+		}
+	}
+
+	$ordered_product_ids = array_unique($ordered_product_ids);
+
+	if (!empty($ordered_product_ids)) {
+		// Display ordered products
+		$args = array(
+			'post_type' => 'product',
+			'post_status' => 'publish',
+			'posts_per_page' => -1,
+			'post__in' => $ordered_product_ids,
+			'orderby' => 'post__in',
+		);
+
+		$products_query = new WP_Query($args);
+
+		echo '<table class="shop_table shop_table_responsive my_account_whois_products"><thead><tr>';
+		echo '<th>' . esc_html__('Product', 'hello-elementor') . '</th>';
+		echo '<th>' . esc_html__('Order Date', 'hello-elementor') . '</th>';
+		echo '<th>' . esc_html__('Status', 'hello-elementor') . '</th>';
+		echo '<th>' . esc_html__('Action', 'hello-elementor') . '</th>';
+		echo '</tr></thead><tbody>';
+
+		while ($products_query->have_posts()) {
+			$products_query->the_post();
+			$product = wc_get_product(get_the_ID());
+
+			// Find the latest order for this product
+			$latest_order = null;
+			foreach ($orders as $order) {
+				foreach ($order->get_items() as $item) {
+					if ($item->get_product_id() == get_the_ID()) {
+						$latest_order = $order;
+						break 2;
+					}
+				}
+			}
+
+			echo '<tr>';
+			echo '<td><a href="' . esc_url(get_permalink()) . '">' . esc_html(get_the_title()) . '</a></td>';
+			if ($latest_order) {
+				echo '<td>' . esc_html($latest_order->get_date_created()->date_i18n(get_option('date_format'))) . '</td>';
+				echo '<td>' . esc_html(wc_get_order_status_name($latest_order->get_status())) . '</td>';
+			} else {
+				echo '<td>-</td>';
+				echo '<td>-</td>';
+			}
+			echo '<td><a href="' . esc_url(get_permalink()) . '" class="button">' . esc_html__('View Product', 'hello-elementor') . '</a></td>';
+			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
+		wp_reset_postdata();
+	} else {
+		// No orders found - show shop button
+		echo '<div class="woocommerce-message woocommerce-message--info woocommerce-Message woocommerce-Message--info" style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 10px;">';
+		echo '<p style="font-size: 16px; color: #666; margin-bottom: 20px;">' . esc_html__('You haven\'t ordered any Whois Database Products yet.', 'hello-elementor') . '</p>';
+		echo '<a href="' . esc_url(home_url('/shop/')) . '" class="button" style="background: var(--primary-color); color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; display: inline-block;">' . esc_html__('Browse Products', 'hello-elementor') . '</a>';
+		echo '</div>';
 	}
 }
 
